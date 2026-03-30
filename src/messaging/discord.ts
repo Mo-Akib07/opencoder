@@ -47,7 +47,7 @@ export async function startDiscordBot(token: string, channelId: string, projectD
 
   // Bridge listeners
   bridge.on('task:start', (d: BridgeEvents['task:start']) => sendMsg(`🔄 Working: ${d.task.slice(0, 200)}`));
-  bridge.on('task:complete', (d: BridgeEvents['task:complete']) => sendMsg(`✅ Done: ${d.summary.slice(0, 300)}`));
+  bridge.on('task:complete', (d: BridgeEvents['task:complete']) => sendMsg(`✅ Done!\n\n${d.result.slice(0, 1900)}`));
   bridge.on('file:changed', (d: BridgeEvents['file:changed']) => sendMsg(`✏️ ${d.action}: ${d.path}`));
   bridge.on('error', (d: BridgeEvents['error']) => sendMsg(`⚠️ Error: ${d.message.slice(0, 300)}`));
   bridge.on('links:ready', (d: BridgeEvents['links:ready']) => sendMsg(`📱 Web: ${d.webUrl}\n💻 SSH: ${d.sshUrl}`));

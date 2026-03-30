@@ -4,7 +4,7 @@ import { EventEmitter } from 'node:events';
 
 export interface BridgeEvents {
   'task:start': { task: string };
-  'task:complete': { task: string; summary: string };
+  'task:complete': { task: string; result: string };
   'file:changed': { action: string; path: string };
   'approval:needed': { filePath: string; diff: string; resolve: (approved: boolean) => void };
   'error': { message: string };

@@ -128,7 +128,7 @@ export async function startTelegramBot(token: string, targetChatId: string, proj
   });
 
   bridge.on('task:complete', (data: BridgeEvents['task:complete']) => {
-    sendMessage(`✅ Done: ${data.summary.slice(0, 300)}`);
+    sendMessage(`✅ Done!\n\n${data.result}`);
   });
 
   bridge.on('file:changed', (data: BridgeEvents['file:changed']) => {

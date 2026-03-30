@@ -48,7 +48,7 @@ export async function startSlackBot(token: string, targetChannelId: string, proj
 
   // Bridge listeners
   bridge.on('task:start', (d: BridgeEvents['task:start']) => sendMsg(`🔄 Working: ${d.task.slice(0, 200)}`));
-  bridge.on('task:complete', (d: BridgeEvents['task:complete']) => sendMsg(`✅ Done: ${d.summary.slice(0, 300)}`));
+  bridge.on('task:complete', (d: BridgeEvents['task:complete']) => sendMsg(`✅ Done!\n\n${d.result.slice(0, 2500)}`));
   bridge.on('file:changed', (d: BridgeEvents['file:changed']) => sendMsg(`✏️ ${d.action}: ${d.path}`));
   bridge.on('error', (d: BridgeEvents['error']) => sendMsg(`⚠️ Error: ${d.message.slice(0, 300)}`));
   bridge.on('links:ready', (d: BridgeEvents['links:ready']) => sendMsg(`📱 Web: ${d.webUrl}\n💻 SSH: ${d.sshUrl}`));

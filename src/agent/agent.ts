@@ -142,7 +142,7 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
         tools: allTools,
         maxSteps: 25,
         abortSignal: currentAbort.signal,
-        onStepFinish: ({ toolCalls, text }) => {
+        onStepFinish: ({ toolCalls }) => {
           if (toolCalls && toolCalls.length > 0) {
             spinner.stopSpinner();
             for (const tc of toolCalls) {
@@ -150,20 +150,22 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
               logToolCall(tc.toolName, tc.args as Record<string, unknown>);
             }
           }
-          if (text) fullResponse += text;
         },
       });
 
       // Stream AI text to terminal
       let firstChunk = true;
-      for await (const chunk of result.textStream) {
-        if (firstChunk) {
-          spinner.stopSpinner();
-          console.log();
-          process.stdout.write('  ');
-          firstChunk = false;
+      for await (const event of result.fullStream) {
+        if (event.type === 'text-delta') {
+          if (firstChunk) {
+            spinner.stopSpinner();
+            console.log();
+            process.stdout.write('  ');
+            firstChunk = false;
+          }
+          writeStreamChunk(event.textDelta);
+          fullResponse += event.textDelta;
         }
-        writeStreamChunk(chunk);
       }
 
       if (!firstChunk) console.log('\n');
@@ -173,8 +175,8 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
       conversationHistory.push({ role: 'assistant', content: fullResponse || '(task completed)' });
 
       // Notify messaging platforms
-      bridge.notify('task:complete', { task: userInput, summary: (fullResponse || 'Task completed').slice(0, 300) });
-      if (replyFn) replyFn((fullResponse || 'Task completed').slice(0, 500));
+      bridge.notify('task:complete', { task: userInput, result: fullResponse || 'Task completed' });
+      if (replyFn) replyFn(fullResponse || 'Task completed');
 
     } catch (err) {
       spinner.stopSpinner();
