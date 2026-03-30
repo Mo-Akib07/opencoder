@@ -1,0 +1,94 @@
+{
+  "name": "opencoder",
+  "displayName": "OpenCoder - AI Coding Assistant",
+  "description": "Open-source AI coding assistant. Works with Claude, GPT-4, Gemini, Ollama and more. Control from terminal or Telegram.",
+  "version": "1.0.0",
+  "publisher": "opencoder",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "coding assistant",
+    "claude",
+    "gpt",
+    "gemini",
+    "ollama",
+    "openrouter",
+    "terminal"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/opencoder-ai/opencoder"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "opencoder.start",
+        "title": "OpenCoder: Start Session"
+      },
+      {
+        "command": "opencoder.askFile",
+        "title": "OpenCoder: Ask AI About This File"
+      },
+      {
+        "command": "opencoder.fixSelected",
+        "title": "OpenCoder: Fix Selected Code"
+      },
+      {
+        "command": "opencoder.explainCode",
+        "title": "OpenCoder: Explain This Code"
+      },
+      {
+        "command": "opencoder.runTask",
+        "title": "OpenCoder: Run a Task"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "opencoder.start",
+        "key": "ctrl+shift+o",
+        "mac": "cmd+shift+o"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "opencoder.askFile",
+          "group": "opencoder@1",
+          "when": "editorHasSelection || editorTextFocus"
+        },
+        {
+          "command": "opencoder.fixSelected",
+          "group": "opencoder@2",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "opencoder.explainCode",
+          "group": "opencoder@3",
+          "when": "editorHasSelection"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "watch": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --watch",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "esbuild": "^0.20.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}
