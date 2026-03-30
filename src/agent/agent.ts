@@ -1,5 +1,5 @@
 import { createInterface } from 'node:readline';
-import { streamText, type CoreMessage } from 'ai';
+import { streamText, generateText, type CoreMessage } from 'ai';
 import chalk from 'chalk';
 import { getConfig } from '../config/settings';
 import { getModel, getModelLabel } from '../providers/registry';
@@ -191,6 +191,24 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
             process.stdout.write('\n  ' + finalText.replace(/\n/g, '\n  ') + '\n\n');
           }
         } catch { /* ignore */ }
+      }
+
+      // Stronger Fallback: if STILL no text and no tools were called, stream might have failed entirely (Groq bug)
+      if (!fullResponse && toolCallCount === 0 && !abortCtl?.signal.aborted) {
+        spinner.thinking();
+        try {
+          const fallback = await generateText({
+            model,
+            system: sysPrompt,
+            messages: history,
+            abortSignal: abortCtl?.signal,
+          });
+          if (fallback.text) {
+            fullResponse = fallback.text;
+            process.stdout.write('\n  ' + fullResponse.replace(/\n/g, '\n  ') + '\n\n');
+          }
+        } catch { /* ignore */ }
+        spinner.stopSpinner();
       }
 
       if (!fullResponse) {
