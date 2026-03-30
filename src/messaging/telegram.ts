@@ -169,7 +169,9 @@ export async function startTelegramBot(token: string, targetChatId: string, proj
     bot.start({ onStart: () => {
       console.log(chalk.green('  ● Telegram bot connected'));
       sendMessage(`🚀 OpenCoder started!\n\n📁 Project: ${projectDir}\n🤖 AI: ${modelLabel}\n\nType /help for commands.`);
-    }});
+    }}).catch(e => {
+      console.log(chalk.yellow(`  ⚠  Telegram error: ${e instanceof Error ? e.message : String(e)}`));
+    });
   } catch (e) {
     console.log(chalk.red(`  ✗ Telegram bot failed: ${e instanceof Error ? e.message : String(e)}`));
   }

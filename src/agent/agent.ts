@@ -64,17 +64,16 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
 
   if (options.task) await runTask(options.task);
 
-  // ── REPL — single readline, never closed ────────────────────────────
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-
+  // ── REPL — Fresh readline per prompt to avoid Windows deadlock ────────
   function prompt(): void {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
     rl.question(chalk.cyan('\n  ❯ '), async (input) => {
+      rl.close();
       const cmd = input.trim();
       if (!cmd) { prompt(); return; }
 
       if (cmd === 'exit' || cmd === 'quit' || cmd === '/exit') {
         console.log(chalk.gray(`\n  Bye! ${taskCount} task${taskCount !== 1 ? 's' : ''} completed.\n`));
-        rl.close();
         process.exit(0);
       }
       if (cmd === '/clear' || cmd === 'clear') {
@@ -203,12 +202,14 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
             messages: history,
             abortSignal: abortCtl?.signal,
           });
+          spinner.stopSpinner();
           if (fallback.text) {
             fullResponse = fallback.text;
             process.stdout.write('\n  ' + fullResponse.replace(/\n/g, '\n  ') + '\n\n');
           }
-        } catch { /* ignore */ }
-        spinner.stopSpinner();
+        } catch { 
+          spinner.stopSpinner();
+        }
       }
 
       if (!fullResponse) {

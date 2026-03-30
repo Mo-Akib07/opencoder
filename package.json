@@ -1,6 +1,6 @@
 {
   "name": "opencoder-cli",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "AI coding assistant for your terminal — like Claude Code, but open source and multi-provider",
   "type": "module",
   "bin": {
