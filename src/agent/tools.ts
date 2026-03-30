@@ -25,6 +25,12 @@ function safePath(p: string): string {
   return abs;
 }
 
+// ── Rate Limiting ──────────────────────────────────────────────────────────────
+let recentFileReads = 0;
+// Reset the read counter every 15 seconds to allow natural conversational flow
+// but prevent sudden parallel bursts of reading 10 files at once.
+setInterval(() => { recentFileReads = 0; }, 15_000).unref();
+
 // ── File Tools ───────────────────────────────────────────────────────────────
 
 export const readFileTool = tool({
@@ -34,6 +40,11 @@ export const readFileTool = tool({
   }),
   execute: async ({ path }) => {
     try {
+      if (recentFileReads >= 4) {
+        return `[System: Context limit protection. Do not read any more files in this step. Summarize what you have already learned and ask the user if they need you to read more files.]`;
+      }
+      recentFileReads++;
+
       const abs = safePath(path);
       if (!existsSync(abs)) return `Error: File not found: ${path}`;
       const content = readFileSync(abs, 'utf8');
