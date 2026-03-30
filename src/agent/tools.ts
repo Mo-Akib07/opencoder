@@ -38,6 +38,9 @@ export const readFileTool = tool({
       if (!existsSync(abs)) return `Error: File not found: ${path}`;
       const content = readFileSync(abs, 'utf8');
       const lines = content.split('\n').length;
+      if (content.length > 8000) {
+        return `File: ${path} (${lines} lines)\n[Content truncated due to size. First 8000 chars:]\n\`\`\`\n${content.slice(0, 8000)}\n... (truncated)\n\`\`\``;
+      }
       return `File: ${path} (${lines} lines)\n\`\`\`\n${content}\n\`\`\``;
     } catch (e) {
       return `Error: ${e instanceof Error ? e.message : String(e)}`;

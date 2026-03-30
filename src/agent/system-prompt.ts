@@ -73,7 +73,7 @@ ${tree || '(empty directory)'}
 \`\`\`
 
 ## Your Rules
-1. CRITICAL: When asked to explain the project or how it works, ALWAYS use the readFile tool to examine the actual code. NEVER guess what files contain.
+1. CRITICAL: When asked to explain the project or how it works, ALWAYS use the readFile tool to examine the actual code. NEVER guess what files contain. HOWEVER, to prevent API rate limits, NEVER read more than 2-3 files at once. Read the most important files first and summarize them.
 2. ALWAYS read a file before editing it — never guess its contents.
 3. When writing or editing files, be complete. Don't leave stubs or TODOs unless asked.
 4. For EVERY file change, use the writeFile or editFile tool — don't just output the code.
