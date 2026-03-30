@@ -6,26 +6,26 @@ const MAX_CONTEXT_FILES = 20;
 const MAX_FILE_SIZE = 50_000; // 50KB per file in context
 
 /** Reads a folder's structure for the system prompt context */
-function getProjectTree(dir: string, depth = 0, maxDepth = 3): string {
-  if (depth > maxDepth) return '';
+function getProjectTree(dir: string, currentPath = '', depth = 0, maxDepth = 4): string[] {
+  if (depth > maxDepth) return [];
   const IGNORE = new Set(['node_modules', '.git', 'dist', 'build', '.next', '__pycache__', '.venv', 'venv']);
   try {
     const entries = readdirSync(dir).filter((e) => !IGNORE.has(e) && !e.startsWith('.')).sort();
-    return entries
-      .map((entry) => {
-        const abs = join(dir, entry);
-        const isDir = statSync(abs).isDirectory();
-        const prefix = '  '.repeat(depth);
-        if (isDir) {
-          const children = getProjectTree(abs, depth + 1, maxDepth);
-          return `${prefix}${entry}/\n${children}`;
-        }
-        return `${prefix}${entry}`;
-      })
-      .filter(Boolean)
-      .join('\n');
+    let results: string[] = [];
+    for (const entry of entries) {
+      const abs = join(dir, entry);
+      const isDir = statSync(abs).isDirectory();
+      const relativePath = currentPath ? `${currentPath}/${entry}` : entry;
+      if (isDir) {
+        results.push(`${relativePath}/`);
+        results = results.concat(getProjectTree(abs, relativePath, depth + 1, maxDepth));
+      } else {
+        results.push(relativePath);
+      }
+    }
+    return results;
   } catch {
-    return '';
+    return [];
   }
 }
 
@@ -54,7 +54,8 @@ function getProjectMeta(rootDir: string): string {
 /** Builds the full system prompt for the coding agent */
 export function buildSystemPrompt(): string {
   const rootDir = getRootDir();
-  const tree = getProjectTree(rootDir);
+  const treePaths = getProjectTree(rootDir);
+  const tree = treePaths.slice(0, 150).join('\n') + (treePaths.length > 150 ? '\n... (truncated)' : '');
   const meta = getProjectMeta(rootDir);
   const cwd = rootDir;
 

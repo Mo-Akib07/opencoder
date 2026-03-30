@@ -92,7 +92,7 @@ export const editFileTool = tool({
 });
 
 export const listFilesTool = tool({
-  description: 'List files in a directory. Supports glob patterns.',
+  description: 'List files in a directory. Supports glob patterns (e.g., "**/*.py" to search subdirectories recursively).',
   parameters: z.object({
     directory: z.string().describe('Directory relative to project root').default('.'),
     pattern: z.string().describe('Glob pattern to filter files').optional(),
