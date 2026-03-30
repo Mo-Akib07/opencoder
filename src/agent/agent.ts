@@ -200,7 +200,19 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
             model,
             system: sysPrompt,
             messages: history,
+            tools: allTools,
+            maxSteps: 25,
             abortSignal: abortCtl?.signal,
+            onStepFinish: ({ toolCalls }) => {
+              if (toolCalls && toolCalls.length > 0) {
+                spinner.stopSpinner();
+                for (const tc of toolCalls) {
+                  toolCallCount++;
+                  logToolCall(tc.toolName, tc.args as Record<string, unknown>);
+                }
+                spinner.thinking();
+              }
+            },
           });
           spinner.stopSpinner();
           if (fallback.text) {
