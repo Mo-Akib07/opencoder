@@ -111,6 +111,14 @@ export async function startTelegramBot(token: string, targetChatId: string, proj
     await ctx.editMessageReplyMarkup(undefined);
   });
 
+  // Handle plain text messages (non-command) as tasks
+  bot.on('message:text', (ctx) => {
+    const text = ctx.message.text?.trim();
+    if (!text || text.startsWith('/')) return; // skip commands
+    bridge.inject({ source: 'telegram', task: text, replyFn: (msg) => sendMessage(msg) });
+    return ctx.reply(`📝 Task queued: "${text.slice(0, 100)}"`);
+  });
+
   // Handle file uploads
   bot.on('message:document', async (ctx) => {
     const doc = ctx.message.document;

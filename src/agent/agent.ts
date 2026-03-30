@@ -7,7 +7,7 @@ import { allTools, setRootDir, getRootDir } from './tools';
 import { buildSystemPrompt } from './system-prompt';
 import { displayBanner, displayCompactHeader } from '../ui/banner';
 import * as spinner from '../ui/spinner';
-import { logToolCall, writeStreamChunk } from '../ui/stream';
+import { logToolCall } from '../ui/stream';
 import { bridge } from '../messaging/bridge';
 
 export interface AgentOptions {
@@ -19,18 +19,13 @@ export interface AgentOptions {
 
 export async function startAgent(options: AgentOptions = {}): Promise<void> {
   const config = getConfig();
-
-  // Apply CLI overrides
   if (options.provider) config.provider = options.provider as typeof config.provider;
   if (options.model) config.model = options.model;
   if (options.autoApprove) config.autoApprove = true;
 
   setRootDir(process.cwd());
-
-  // Show banner
   displayBanner();
 
-  // Load AI model
   let model: Awaited<ReturnType<typeof getModel>>;
   try {
     model = await getModel(config);
@@ -41,107 +36,105 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
   }
 
   const modelLabel = getModelLabel(config);
-  const conversationHistory: CoreMessage[] = [];
-  const systemPrompt = buildSystemPrompt();
+  const history: CoreMessage[] = [];
+  const sysPrompt = buildSystemPrompt();
   let taskCount = 0;
   let isRunning = false;
-  let currentAbort: AbortController | null = null;
+  let abortCtl: AbortController | null = null;
 
-  // Display header
   displayCompactHeader(modelLabel, getRootDir(), config.autoApprove);
 
-  // ── Ctrl+C Handling ─────────────────────────────────────────────────
-  let sigintCount = 0;
+  // ── Ctrl+C ──────────────────────────────────────────────────────────
+  let sigints = 0;
   process.on('SIGINT', () => {
-    sigintCount++;
-    if (isRunning && currentAbort) {
-      // First Ctrl+C: cancel current task
-      currentAbort.abort();
-      console.log(chalk.yellow('\n  ⚠  Task interrupted. Press Ctrl+C again to exit.'));
+    sigints++;
+    if (isRunning && abortCtl) {
+      abortCtl.abort();
+      console.log(chalk.yellow('\n  ⚠  Task interrupted.'));
       isRunning = false;
       return;
     }
-    if (sigintCount >= 2) {
-      console.log(chalk.gray(`\n  Session ended. ${taskCount} task${taskCount === 1 ? '' : 's'} completed.\n`));
+    if (sigints >= 2) {
+      console.log(chalk.gray(`\n  Bye! ${taskCount} task${taskCount !== 1 ? 's' : ''} completed.\n`));
       process.exit(0);
     }
     console.log(chalk.gray('\n  Press Ctrl+C again to exit.'));
-    setTimeout(() => { sigintCount = 0; }, 2000);
+    setTimeout(() => { sigints = 0; }, 2000);
   });
 
-  // If task provided as CLI argument, run it immediately
-  if (options.task) {
-    await runTask(options.task);
-  }
+  if (options.task) await runTask(options.task);
 
-  // ── REPL Loop ───────────────────────────────────────────────────────
+  // ── REPL — single readline, never closed ────────────────────────────
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
-  const promptUser = (): void => {
+  function prompt(): void {
     rl.question(chalk.cyan('\n  ❯ '), async (input) => {
       const cmd = input.trim();
-      if (!cmd) { promptUser(); return; }
+      if (!cmd) { prompt(); return; }
 
-      // Built-in commands
       if (cmd === 'exit' || cmd === 'quit' || cmd === '/exit') {
-        console.log(chalk.gray(`\n  Session ended. ${taskCount} task${taskCount === 1 ? '' : 's'} completed.\n`));
+        console.log(chalk.gray(`\n  Bye! ${taskCount} task${taskCount !== 1 ? 's' : ''} completed.\n`));
         rl.close();
         process.exit(0);
       }
       if (cmd === '/clear' || cmd === 'clear') {
-        conversationHistory.length = 0;
+        history.length = 0;
         console.log(chalk.gray('  ↺ Conversation cleared.'));
-        promptUser(); return;
+        prompt(); return;
       }
-      if (cmd === '/status' || cmd === 'status') {
-        showStatus(); promptUser(); return;
-      }
-      if (cmd === '/help' || cmd === 'help') {
-        showHelp(); promptUser(); return;
+      if (cmd === '/status' || cmd === 'status') { showStatus(); prompt(); return; }
+      if (cmd === '/help' || cmd === 'help') { showHelp(); prompt(); return; }
+
+      try {
+        await runTask(cmd);
+      } catch (e) {
+        spinner.stopSpinner();
+        console.log(chalk.red(`\n  Error: ${e instanceof Error ? e.message : String(e)}\n`));
       }
 
-      await runTask(cmd);
-      checkRemoteTasks();
-      promptUser();
+      // Process any pending remote tasks (from Telegram etc.)
+      while (bridge.hasPendingTasks()) {
+        try {
+          const t = await bridge.nextTask();
+          console.log(chalk.magenta(`\n  📱 Remote task from ${t.source}: ${t.task}`));
+          await runTask(t.task, t.replyFn);
+        } catch { break; }
+      }
+
+      prompt();
     });
-  };
-
-  // Process remote tasks from messaging platforms
-  function checkRemoteTasks(): void {
-    while (bridge.hasPendingTasks()) {
-      const task = bridge.nextTask();
-      task.then((t) => {
-        console.log(chalk.magenta(`\n  📱 Remote task from ${t.source}: ${t.task}`));
-        runTask(t.task, t.replyFn).then(() => promptUser());
-      });
-      break; // one at a time
-    }
   }
 
-  promptUser();
+  bridge.on('task:injected', () => {
+    // Remote tasks processed after current/next local prompt cycle
+  });
+
+  prompt();
 
   // ── Run a single task ───────────────────────────────────────────────
   async function runTask(userInput: string, replyFn?: (msg: string) => void): Promise<void> {
     taskCount++;
-    sigintCount = 0;
+    sigints = 0;
     isRunning = true;
-    currentAbort = new AbortController();
+    abortCtl = new AbortController();
 
-    conversationHistory.push({ role: 'user', content: userInput });
+    history.push({ role: 'user', content: userInput });
     bridge.notify('task:start', { task: userInput });
 
-    const spin = spinner.thinking();
+    // Start thinking spinner
+    spinner.thinking();
+
     let fullResponse = '';
     let toolCallCount = 0;
 
     try {
       const result = streamText({
         model,
-        system: systemPrompt,
-        messages: conversationHistory,
+        system: sysPrompt,
+        messages: history,
         tools: allTools,
         maxSteps: 25,
-        abortSignal: currentAbort.signal,
+        abortSignal: abortCtl.signal,
         onStepFinish: ({ toolCalls }) => {
           if (toolCalls && toolCalls.length > 0) {
             spinner.stopSpinner();
@@ -153,35 +146,68 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
         },
       });
 
-      // Stream AI text to terminal
-      let firstChunk = true;
-      for await (const event of result.fullStream) {
-        if (event.type === 'text-delta') {
-          if (firstChunk) {
-            spinner.stopSpinner();
-            console.log();
-            process.stdout.write('  ');
-            firstChunk = false;
-          }
-          writeStreamChunk(event.textDelta);
-          fullResponse += event.textDelta;
+      // ── Stream tokens to terminal in real-time ────────────────────
+      let textStarted = false;
+      let lastEventTime = Date.now();
+
+      // Stall detector: if no stream events for 30s, abort
+      const stallTimer = setInterval(() => {
+        if (Date.now() - lastEventTime > 30_000 && abortCtl) {
+          abortCtl.abort();
         }
+      }, 5_000);
+
+      try {
+        for await (const chunk of result.textStream) {
+          lastEventTime = Date.now();
+
+          if (!textStarted) {
+            // First text token — stop spinner, print a blank line
+            spinner.stopSpinner();
+            process.stdout.write('\n  ');
+            textStarted = true;
+          }
+          // Write token to terminal, indent after newlines
+          const text = chunk.replace(/\n/g, '\n  ');
+          process.stdout.write(text);
+          fullResponse += chunk;
+        }
+      } finally {
+        clearInterval(stallTimer);
       }
 
-      if (!firstChunk) console.log('\n');
+      // Finish the streamed text block
       spinner.stopSpinner();
+      if (textStarted) {
+        process.stdout.write('\n\n');
+      }
+
+      // Fallback: if stream produced no text, grab result.text
+      if (!fullResponse) {
+        try {
+          const finalText = await result.text;
+          if (finalText) {
+            fullResponse = finalText;
+            process.stdout.write('\n  ' + finalText.replace(/\n/g, '\n  ') + '\n\n');
+          }
+        } catch { /* ignore */ }
+      }
+
+      if (!fullResponse) {
+        console.log(chalk.gray('\n  (task completed)\n'));
+      }
 
       // Save to history
-      conversationHistory.push({ role: 'assistant', content: fullResponse || '(task completed)' });
+      history.push({ role: 'assistant', content: fullResponse || '(done)' });
 
-      // Notify messaging platforms
+      // Notify messaging platforms (Telegram etc.)
       bridge.notify('task:complete', { task: userInput, result: fullResponse || 'Task completed' });
       if (replyFn) replyFn(fullResponse || 'Task completed');
 
     } catch (err) {
       spinner.stopSpinner();
-      if (currentAbort.signal.aborted) {
-        console.log(chalk.yellow('  Task cancelled.'));
+      if (abortCtl?.signal.aborted) {
+        console.log(chalk.yellow('\n  Task cancelled.\n'));
       } else {
         const msg = err instanceof Error ? err.message : String(err);
         bridge.notify('error', { message: msg });
@@ -191,25 +217,25 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
         } else if (msg.includes('429') || msg.includes('rate limit')) {
           spinner.error('Rate limit exceeded. Wait a moment and try again.');
         } else if (msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) {
-          spinner.error(`Cannot connect to ${config.provider}. Is it running?`);
+          spinner.error(`Cannot connect to ${config.provider}. Check your connection.`);
         } else {
-          spinner.error(msg.length > 120 ? msg.slice(0, 120) + '...' : msg);
+          spinner.error(msg.length > 150 ? msg.slice(0, 150) + '…' : msg);
         }
       }
     } finally {
       isRunning = false;
-      currentAbort = null;
+      abortCtl = null;
     }
   }
 
-  // ── Built-in command handlers ───────────────────────────────────────
+  // ── Built-in commands ───────────────────────────────────────────────
   function showStatus(): void {
     console.log();
     console.log(chalk.cyan.bold('  Status'));
     console.log(chalk.gray('  ' + '─'.repeat(35)));
     console.log(chalk.gray('  Provider:  ') + chalk.white(modelLabel));
     console.log(chalk.gray('  Directory: ') + chalk.white(getRootDir()));
-    console.log(chalk.gray('  Messages:  ') + chalk.white(String(conversationHistory.length)));
+    console.log(chalk.gray('  Messages:  ') + chalk.white(String(history.length)));
     console.log(chalk.gray('  Tasks:     ') + chalk.white(String(taskCount)));
     console.log();
   }

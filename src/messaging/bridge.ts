@@ -39,6 +39,7 @@ class MessageBridge extends EventEmitter {
     } else {
       this.taskQueue.push(task);
     }
+    this.emit('task:injected');
   }
 
   /** Wait for next queued task (used by agent if polling for remote tasks) */
