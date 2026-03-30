@@ -1,10 +1,10 @@
 {
-  "name": "opencoder",
+  "name": "opencoder-cli",
   "version": "1.0.0",
   "description": "AI coding assistant for your terminal — like Claude Code, but open source and multi-provider",
   "type": "module",
   "bin": {
-    "opencoder": "./dist/index.js"
+    "opencoder": "dist/index.js"
   },
   "main": "./dist/index.js",
   "scripts": {
@@ -34,7 +34,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/opencoder.git"
+    "url": "git+https://github.com/YOUR_USERNAME/opencoder.git"
   },
   "homepage": "https://github.com/YOUR_USERNAME/opencoder#readme",
   "bugs": {
