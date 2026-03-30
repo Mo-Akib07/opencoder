@@ -8,7 +8,7 @@ export interface BridgeEvents {
   'file:changed': { action: string; path: string };
   'approval:needed': { filePath: string; diff: string; resolve: (approved: boolean) => void };
   'error': { message: string };
-  'links:ready': { sshUrl: string; webUrl: string };
+  'links:ready': { publicUrl: string; localUrl: string };
   'command:output': { command: string; output: string };
   'status:update': { status: string };
 }

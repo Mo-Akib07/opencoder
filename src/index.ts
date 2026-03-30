@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { isFirstRun, getConfig, getConfigPath } from './config/settings';
+import { bridge } from './messaging/bridge';
 
 const VERSION = '1.0.0';
 
@@ -34,7 +35,7 @@ program
       return;
     }
 
-    // Start messaging bots and tmate before agent REPL
+    // Start messaging bots and remote tunnel before agent REPL
     await startIntegrations();
 
     // Launch agent REPL (banner is displayed inside agent.ts)
@@ -134,13 +135,14 @@ async function startIntegrations(): Promise<void> {
     }
   }
 
-  // tmate remote terminal
+  // Remote tunnel session
   if (config.remoteTerminal) {
     try {
-      const { startTmateSession } = await import('./remote/tmate');
-      await startTmateSession();
+      const { startTunnelSession } = await import('./remote/tunnel');
+      const session = await startTunnelSession(projectDir);
+      bridge.notify('links:ready', session);
     } catch (e) {
-      console.log(chalk.yellow(`  ⚠  tmate: ${e instanceof Error ? e.message : 'failed'}`));
+      console.log(chalk.yellow(`  ⚠  Tunnel: ${e instanceof Error ? e.message : 'failed'}`));
     }
   }
 }

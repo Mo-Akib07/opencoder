@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { getConfig, isFirstRun } from '../config/settings';
 import { PROVIDERS } from '../setup/providers';
+import { getTunnelSession } from '../remote/tunnel';
 
 const VERSION = '1.0.0';
 
@@ -35,7 +36,8 @@ export function displayBanner(): void {
       console.log(chalk.gray('  Discord:   ') + chalk.green('● connected'));
     }
     if (config.remoteTerminal) {
-      console.log(chalk.gray('  Terminal:  ') + chalk.green('● sharing enabled'));
+      const session = getTunnelSession();
+      console.log(chalk.gray('  Terminal:  ') + chalk.green(session ? session.publicUrl : '● sharing enabled'));
     }
     console.log();
   }

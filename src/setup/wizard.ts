@@ -104,7 +104,7 @@ export async function runSetupWizard(): Promise<void> {
     // ── Step 6: Remote Terminal ────────────────────────────────────────────
 
     const remoteTerminal = await confirm({
-      message: 'Enable remote terminal sharing? (via tmate)',
+      message: 'Enable remote terminal sharing? (via Localtunnel+ttyd)',
       default: false,
     });
 

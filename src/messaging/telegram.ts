@@ -80,7 +80,7 @@ export async function startTelegramBot(token: string, targetChatId: string, proj
   });
 
   bot.command('links', (ctx) => {
-    return ctx.reply('🔗 Terminal sharing links will appear here when tmate is active.');
+    return ctx.reply('🔗 Terminal sharing links will appear here when terminal sharing is active.');
   });
 
   bot.command('stop', (ctx) => {
@@ -150,7 +150,7 @@ export async function startTelegramBot(token: string, targetChatId: string, proj
 
   bridge.on('links:ready', (data: BridgeEvents['links:ready']) => {
     sendMessage(
-      `📱 Open terminal on any device:\n\n🌐 Web: ${data.webUrl}\n💻 SSH: ${data.sshUrl}\n\nTap the web link on your phone.`,
+      `📱 Open your terminal on any device:\n🌐 ${data.publicUrl}\n\nTap to open this terminal on your phone.`,
     );
   });
 
