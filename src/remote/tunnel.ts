@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import localtunnel from 'localtunnel';
+import { bridge } from '../messaging/bridge';
 
 export interface TunnelSession {
   localUrl: string;
@@ -27,6 +28,10 @@ export async function startTunnelSession(workingDir: string): Promise<TunnelSess
 
   // 2. Start localtunnel pointing to that port
   tunnelInstance = await localtunnel({ port });
+
+  tunnelInstance.on('error', (err: Error) => {
+    bridge.notify('error', { message: `Tunnel error: ${err.message}` });
+  });
 
   currentSession = {
     localUrl: `http://localhost:${port}`,
