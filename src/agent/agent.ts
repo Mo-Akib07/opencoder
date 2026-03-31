@@ -159,17 +159,22 @@ export async function startAgent(options: AgentOptions = {}): Promise<void> {
       try {
         for await (const chunk of result.textStream) {
           lastEventTime = Date.now();
+          fullResponse += chunk;
 
           if (!textStarted) {
-            // First text token — stop spinner, print a blank line
+            if (fullResponse.trim() === '') continue; // Ignore leading whitespace
+            
+            // First real text token — stop spinner, print a blank line
             spinner.stopSpinner();
             process.stdout.write('\n  ');
             textStarted = true;
+            
+            // Print accumulated text
+            process.stdout.write(fullResponse.trimStart().replace(/\n/g, '\n  '));
+          } else {
+            // Write token to terminal, indent after newlines
+            process.stdout.write(chunk.replace(/\n/g, '\n  '));
           }
-          // Write token to terminal, indent after newlines
-          const text = chunk.replace(/\n/g, '\n  ');
-          process.stdout.write(text);
-          fullResponse += chunk;
         }
       } finally {
         clearInterval(stallTimer);
