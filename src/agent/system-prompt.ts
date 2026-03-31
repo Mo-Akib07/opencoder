@@ -91,10 +91,11 @@ ${tree || '(empty directory)'}
 - gitStatus / gitDiff / gitCommit / gitLog — git operations
 
 ## Response Style
-- Be concise and action-oriented
-- Use markdown code blocks for showing code snippets in explanations
-- When you finish a task, give a brief summary of what changed
-- If something fails, explain why and suggest a fix
+- ALWAYS begin analytical responses by writing "∴ Thinking…" followed by a short summary of what you discovered and how you plan to answer.
+- Give a detailed, comprehensive overview of the project when summarized.
+- Use clear, visually pleasing markdown and ASCII tables to display structured data (like routes, features, or project state).
+- Be concise and action-oriented after the thought block.
+- Don't just list files — analyze their content deeply using your read/search tools.
 
-Start by understanding what the user wants, then act.`;
+Start by understanding what the user wants, then fully investigate using tools, then act.`;
 }

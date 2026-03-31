@@ -1,0 +1,16 @@
+src/messaging/discord.ts(53,85): error TS2339: Property 'webUrl' does not exist on type '{ publicUrl: string; localUrl: string; }'.
+src/messaging/discord.ts(53,106): error TS2339: Property 'sshUrl' does not exist on type '{ publicUrl: string; localUrl: string; }'.
+src/messaging/slack.ts(2,9): error TS2339: Property 'App' does not exist on type 'typeof App'.
+src/messaging/slack.ts(20,39): error TS7031: Binding element 'message' implicitly has an 'any' type.
+src/messaging/slack.ts(20,48): error TS7031: Binding element 'say' implicitly has an 'any' type.
+src/messaging/slack.ts(20,53): error TS7031: Binding element 'context' implicitly has an 'any' type.
+src/messaging/slack.ts(27,35): error TS7031: Binding element 'say' implicitly has an 'any' type.
+src/messaging/slack.ts(28,34): error TS7031: Binding element 'say' implicitly has an 'any' type.
+src/messaging/slack.ts(32,32): error TS7031: Binding element 'say' implicitly has an 'any' type.
+src/messaging/slack.ts(35,35): error TS7031: Binding element 'say' implicitly has an 'any' type.
+src/messaging/slack.ts(39,36): error TS7031: Binding element 'say' implicitly has an 'any' type.
+src/messaging/slack.ts(40,35): error TS7031: Binding element 'say' implicitly has an 'any' type.
+src/messaging/slack.ts(41,36): error TS7031: Binding element 'say' implicitly has an 'any' type.
+src/messaging/slack.ts(45,33): error TS7031: Binding element 'say' implicitly has an 'any' type.
+src/messaging/slack.ts(54,85): error TS2339: Property 'webUrl' does not exist on type '{ publicUrl: string; localUrl: string; }'.
+src/messaging/slack.ts(54,106): error TS2339: Property 'sshUrl' does not exist on type '{ publicUrl: string; localUrl: string; }'.

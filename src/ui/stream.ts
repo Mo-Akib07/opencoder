@@ -16,28 +16,27 @@ const TOOL_ICONS: Record<string, string> = {
   gitLog: '📋',
 };
 
-/** Human-readable labels when a tool is called */
+/** Human-readable short labels for tools */
 const TOOL_LABELS: Record<string, string> = {
-  readFile: 'Reading',
-  writeFile: 'Writing',
-  editFile: 'Editing',
-  listFiles: 'Listing',
-  deleteFile: 'Deleting',
-  createDirectory: 'Creating',
-  searchFiles: 'Searching',
-  runCommand: 'Running',
-  gitStatus: 'Git status',
-  gitDiff: 'Git diff',
-  gitCommit: 'Committing',
-  gitLog: 'Git log',
+  readFile: 'Read',
+  writeFile: 'Write',
+  editFile: 'Edit',
+  listFiles: 'List',
+  deleteFile: 'Delete',
+  createDirectory: 'CreateDir',
+  searchFiles: 'Search',
+  runCommand: 'Bash',
+  gitStatus: 'Git',
+  gitDiff: 'Diff',
+  gitCommit: 'Commit',
+  gitLog: 'Log',
 };
 
 /** Log a tool call to the terminal */
 export function logToolCall(toolName: string, args: Record<string, unknown>): void {
-  const icon = TOOL_ICONS[toolName] || '🔧';
   const label = TOOL_LABELS[toolName] || toolName;
   const detail = getToolDetail(toolName, args);
-  console.log(chalk.gray(`  ${icon} ${label}: `) + chalk.white(detail));
+  console.log(chalk.cyan(`  ● `) + chalk.white(`${label}(`) + chalk.cyan(detail) + chalk.white(`)`));
 }
 
 /** Extract the most useful arg for display */
