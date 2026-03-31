@@ -5,6 +5,7 @@ import { setConfig } from '../config/settings';
 import type { AIProvider, MessagingConfig } from '../config/settings';
 import { PROVIDERS, getProviderChoices, getModelChoices, validateConnection } from './providers';
 import { setupMessaging } from './messaging';
+import { setupSearchProvider } from './search';
 
 // ── Main Wizard ─────────────────────────────────────────────────────────────
 
@@ -101,7 +102,11 @@ export async function runSetupWizard(): Promise<void> {
       messaging = await setupMessaging(messagingChoice);
     }
 
-    // ── Step 6: Remote Terminal ────────────────────────────────────────────
+    // ── Step 6: Web Search ────────────────────────────────────────────────
+    
+    const { searchProvider, tavilyApiKey } = await setupSearchProvider();
+
+    // ── Step 7: Remote Terminal ────────────────────────────────────────────
 
     const remoteTerminal = await confirm({
       message: 'Enable remote terminal sharing? (via Localtunnel+ttyd)',
@@ -115,12 +120,14 @@ export async function runSetupWizard(): Promise<void> {
       apiKey,
       baseUrl,
       model,
+      searchProvider,
+      tavilyApiKey,
       messaging,
       remoteTerminal,
       autoApprove: false,
     });
 
-    displaySummary(provider, model, messaging, remoteTerminal);
+    displaySummary(provider, model, searchProvider, messaging, remoteTerminal);
   } catch (error) {
     // Handle Ctrl+C gracefully
     if (error instanceof Error && error.message.includes('force closed')) {
@@ -136,6 +143,7 @@ export async function runSetupWizard(): Promise<void> {
 function displaySummary(
   provider: AIProvider,
   model: string,
+  searchProvider: string | undefined,
   messaging: MessagingConfig | undefined,
   remoteTerminal: boolean,
 ): void {
@@ -147,6 +155,11 @@ function displaySummary(
   console.log(chalk.green.bold('  │') + '                                                    ' + chalk.green.bold('│'));
   console.log(chalk.green.bold('  │') + chalk.gray('  AI:        ') + chalk.cyan(providerName.padEnd(37)) + chalk.green.bold('│'));
   console.log(chalk.green.bold('  │') + chalk.gray('  Model:     ') + chalk.white(model.padEnd(37)) + chalk.green.bold('│'));
+  
+  if (searchProvider && searchProvider !== 'none') {
+    const searchName = searchProvider === 'tavily' ? 'Tavily (Premium)' : 'DuckDuckGo (Free)';
+    console.log(chalk.green.bold('  │') + chalk.gray('  Web Search:') + chalk.green(searchName.padEnd(37)) + chalk.green.bold('│'));
+  }
 
   if (messaging?.telegram) {
     console.log(chalk.green.bold('  │') + chalk.gray('  Telegram:  ') + chalk.green('● connected'.padEnd(37)) + chalk.green.bold('│'));

@@ -16,9 +16,10 @@ export type AIProvider =
   | 'google'
   | 'ollama'
   | 'openrouter'
-  | 'groq'
   | 'huggingface'
   | 'custom';
+
+export type SearchProvider = 'tavily' | 'free' | 'none';
 
 export interface MessagingConfig {
   telegram?: { botToken: string; chatId: string };
@@ -31,6 +32,8 @@ export interface OpenCoderConfig {
   apiKey?: string;
   baseUrl?: string;
   model?: string;
+  searchProvider?: SearchProvider;
+  tavilyApiKey?: string;
   messaging?: MessagingConfig;
   remoteTerminal: boolean;
   autoApprove: boolean;
@@ -48,7 +51,7 @@ const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 // home directory, platform). No master password needed — tied to this machine.
 
 const ENCRYPTION_SALT = 'opencoder-machine-bound-v1';
-const SENSITIVE_KEYS = new Set(['apiKey', 'botToken']);
+const SENSITIVE_KEYS = new Set(['apiKey', 'botToken', 'tavilyApiKey']);
 
 function getMachineKey(): Buffer {
   const fingerprint = [hostname(), userInfo().username, homedir(), platform()].join(':');
@@ -99,6 +102,7 @@ function processFields(obj: Record<string, unknown>, fn: (v: string) => string):
 
 const DEFAULT_CONFIG: OpenCoderConfig = {
   provider: 'openai',
+  searchProvider: 'free',
   remoteTerminal: false,
   autoApprove: false,
   excludePatterns: [

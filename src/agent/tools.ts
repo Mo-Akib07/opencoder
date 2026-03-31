@@ -4,6 +4,8 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { execa } from 'execa';
 import { globby } from 'globby';
+import { search, SafeSearchType } from 'duck-duck-scrape';
+import { getConfig } from '../config/settings';
 
 // The agent's root working directory — set once when agent starts
 let ROOT_DIR = process.cwd();
@@ -82,7 +84,7 @@ export const writeFileTool = tool({
 });
 
 export const editFileTool = tool({
-  description: 'Replace a specific string/block in a file with new content. Safer than rewriting the whole file.',
+  description: 'Replace a specific string/block in a file with new content. Safer than rewriting the whole file. WARNING: Do NOT use literal "\\n" characters in your JSON string. Use actual multiline strings. Ensure exact matching.',
   parameters: z.object({
     path: z.string().describe('Relative path to the file'),
     search: z.string().describe('The exact string to find and replace'),
@@ -203,6 +205,52 @@ export const searchFilesTool = tool({
       }
     } catch (e) {
       return `Error: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  },
+});
+
+export const searchWebTool = tool({
+  description: 'Search the web for external knowledge, API documentation, or how-to guides. ALWAYS use this when integrating 3rd party tools or models you are unsure about.',
+  parameters: z.object({
+    query: z.string().describe('The search query (e.g., "litellm ollama config format")'),
+  }),
+  execute: async ({ query }) => {
+    try {
+      const config = getConfig();
+      if (config.searchProvider === 'none') {
+        return 'Web search is disabled in configuration. Proceed using only your internal knowledge.';
+      }
+
+      if (config.searchProvider === 'tavily' && config.tavilyApiKey) {
+        // Use Tavily API directly for premium users
+        const response = await fetch('https://api.tavily.com/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            api_key: config.tavilyApiKey,
+            query,
+            include_answer: false,
+            max_results: 3,
+          }),
+        });
+        if (!response.ok) throw new Error(`Tavily API returned ${response.status}`);
+        const data = await response.json();
+        return `Web Search Results for "${query}" (Tavily):\n\n${(data.results || [])
+          .map((r: any) => `Source: ${r.url}\n${r.content}`)
+          .join('\n\n---\n\n')}`;
+      }
+
+      // Fallback: Free DuckDuckGo Search
+      const searchResults = await search(query, { safeSearch: SafeSearchType.OFF });
+      if (!searchResults.results || searchResults.results.length === 0) {
+        return `No web matches found for "${query}". Try a different query.`;
+      }
+      return `Web Search Results for "${query}" (DuckDuckGo):\n\n${searchResults.results
+        .slice(0, 3)
+        .map((r: any) => `Title: ${r.title}\nSource: ${r.url}\nSnippet: ${r.description}`)
+        .join('\n\n---\n\n')}`;
+    } catch (e) {
+      return `Error performing web search: ${e instanceof Error ? e.message : String(e)}`;
     }
   },
 });
@@ -351,6 +399,7 @@ export const allTools = {
   deleteFile: deleteFileTool,
   createDirectory: createDirectoryTool,
   searchFiles: searchFilesTool,
+  searchWeb: searchWebTool,
   runCommand: runCommandTool,
   gitStatus: gitStatusTool,
   gitDiff: gitDiffTool,
