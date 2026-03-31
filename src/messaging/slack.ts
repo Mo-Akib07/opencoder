@@ -1,9 +1,8 @@
-import Bolt from '@slack/bolt';
-const { App } = Bolt;
+import { App } from '@slack/bolt';
 import { bridge, type BridgeEvents } from './bridge';
 import chalk from 'chalk';
 
-let app: InstanceType<typeof App> | null = null;
+let app: App | null = null;
 let channelId: string = '';
 
 export async function startSlackBot(token: string, targetChannelId: string, projectDir: string, modelLabel: string): Promise<void> {
@@ -19,12 +18,15 @@ export async function startSlackBot(token: string, targetChannelId: string, proj
   // Commands via message mentions or slash commands
   app.message(/^\/ask (.+)/, async ({ message, say, context }) => {
     const task = (context as any).matches?.[1]?.trim();
-    if (!task) return say('Usage: /ask <task>');
+    if (!task) {
+      await say('Usage: /ask <task>');
+      return;
+    }
     bridge.inject({ source: 'slack', task, replyFn: (m) => sendMsg(m) });
     await say(`📝 Task queued: "${task}"`);
   });
 
-  app.message('/status', async ({ say }) => say('📊 Agent is running.'));
+  app.message('/status', async ({ say }) => { await say('📊 Agent is running.'); });
   app.message('/files', async ({ say }) => {
     bridge.inject({ source: 'slack', task: 'List project files', replyFn: (m) => sendMsg(m) });
     await say('📁 Listing files...');
@@ -51,7 +53,7 @@ export async function startSlackBot(token: string, targetChannelId: string, proj
   bridge.on('task:complete', (d: BridgeEvents['task:complete']) => sendMsg(`✅ Done!\n\n${d.result.slice(0, 2500)}`));
   bridge.on('file:changed', (d: BridgeEvents['file:changed']) => sendMsg(`✏️ ${d.action}: ${d.path}`));
   bridge.on('error', (d: BridgeEvents['error']) => sendMsg(`⚠️ Error: ${d.message.slice(0, 300)}`));
-  bridge.on('links:ready', (d: BridgeEvents['links:ready']) => sendMsg(`📱 Web: ${d.webUrl}\n💻 SSH: ${d.sshUrl}`));
+  bridge.on('links:ready', (d: BridgeEvents['links:ready']) => sendMsg(`📱 Web: ${d.publicUrl}\n💻 SSH: ${d.localUrl}`));
 
   try {
     await app.start();

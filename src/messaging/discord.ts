@@ -50,7 +50,7 @@ export async function startDiscordBot(token: string, channelId: string, projectD
   bridge.on('task:complete', (d: BridgeEvents['task:complete']) => sendMsg(`✅ Done!\n\n${d.result.slice(0, 1900)}`));
   bridge.on('file:changed', (d: BridgeEvents['file:changed']) => sendMsg(`✏️ ${d.action}: ${d.path}`));
   bridge.on('error', (d: BridgeEvents['error']) => sendMsg(`⚠️ Error: ${d.message.slice(0, 300)}`));
-  bridge.on('links:ready', (d: BridgeEvents['links:ready']) => sendMsg(`📱 Web: ${d.webUrl}\n💻 SSH: ${d.sshUrl}`));
+  bridge.on('links:ready', (d: BridgeEvents['links:ready']) => sendMsg(`📱 Web: ${d.publicUrl}\n💻 SSH: ${d.localUrl}`));
   bridge.on('approval:needed', (d: BridgeEvents['approval:needed']) => {
     const preview = d.diff.length > 1800 ? d.diff.slice(0, 1800) + '...' : d.diff;
     sendMsg(`📋 Approval needed: ${d.filePath}\n\`\`\`diff\n${preview}\n\`\`\`\nReply /approve or /reject`);
